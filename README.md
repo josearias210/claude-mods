@@ -19,7 +19,7 @@
 
 | Mod | Description |
 | --- | --- |
-| [`status-bar`](mods/status-bar) | Footer bar with model, effort, cache countdown and context left. |
+| [`status-bar`](mods/status-bar) | Footer bar with model, effort, cache countdown and context left, plus 5h and 7d quota. |
 
 More mods are on the way.
 

@@ -3,7 +3,7 @@ import type { Register } from 'claude-code'
 
 import type { Snap } from '../types'
 
-const initial: Snap = { model: '', effort: '', cacheUntil: 0, now: 0, window: 0, percent: null }
+const initial: Snap = { model: '', effort: '', cacheUntil: 0, now: 0, window: 0, percent: null, fiveHour: null, sevenDay: null }
 const snap = atom({ plugin: 'status-bar', key: 'snap' } as const, initial)
 
 const SKY = '#7dcfff'
@@ -20,16 +20,32 @@ const fmtLeft = (ms: number) => {
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
 }
 
+const quotaColor = (p: number) => (p >= 90 ? ROSE : p >= 70 ? PEACH : MINT)
+
+const fmtReset = (iso: string | undefined, now: number) => {
+  if (!iso) return ''
+  const min = Math.max(0, Math.round((Date.parse(iso) - now) / 60000))
+  if (min >= 1440) return ` · ${Math.floor(min / 1440)}d${Math.floor((min % 1440) / 60)}h`
+  if (min >= 60) return ` · ${Math.floor(min / 60)}h${String(min % 60).padStart(2, '0')}`
+  return ` · ${min}m`
+}
+
 const shortModel = (m: string) => m.replace(/^claude-/, '').replace(/-\d{8}$/, '')
 
 async function refresh($: any) {
   const now = await $.clock.now()
-  const { context } = await $.session.usage()
+  const { context, rateLimits } = await $.session.usage()
+  const pick = (k: string) => {
+    const r = (rateLimits ?? []).find((x: any) => x.kind === k)
+    return r ? { pct: Math.round(r.percentUsed), resetsAt: r.resetsAt } : null
+  }
   await update($, snap, (s: Snap) => ({
     ...s,
     now,
     window: context.window,
     percent: context.percent ?? null,
+    fiveHour: pick('five_hour'),
+    sevenDay: pick('seven_day'),
   }))
 }
 
@@ -92,6 +108,18 @@ export const register: Register = on => {
           ▤ {s.window ? fmtTokens(s.window) : '--'}
           {free === null ? '' : ` · ${free}% left`}
         </Text>
+        {s.fiveHour ? <Text color={MUTED}> │ </Text> : null}
+        {s.fiveHour ? (
+          <Text color={quotaColor(s.fiveHour.pct)}>
+            ⏱ 5h {s.fiveHour.pct}%{fmtReset(s.fiveHour.resetsAt, s.now)}
+          </Text>
+        ) : null}
+        {s.sevenDay ? <Text color={MUTED}> │ </Text> : null}
+        {s.sevenDay ? (
+          <Text color={quotaColor(s.sevenDay.pct)}>
+            ▦ 7d {s.sevenDay.pct}%{fmtReset(s.sevenDay.resetsAt, s.now)}
+          </Text>
+        ) : null}
       </Box>
     )
   })

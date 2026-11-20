@@ -1,1 +1,1 @@
-{ "name": "status-bar", "version": "0.2.0", "description": "Footer bar: model, effort, cache countdown and context left", "types": "./types/index.d.ts" }
+{ "name": "status-bar", "version": "0.3.0", "description": "Footer bar: model, effort, cache countdown, context left and 5h/7d quota", "types": "./types/index.d.ts" }
