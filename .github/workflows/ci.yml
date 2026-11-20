@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate marketplace and mods
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JSON files are valid
+        run: |
+          find . -name '*.json' -not -path './.git/*' -print0 \
+            | xargs -0 -n1 sh -c 'jq empty "$0" || { echo "Invalid JSON: $0"; exit 1; }'
+
+      - name: Every marketplace entry points to a real mod
+        run: |
+          jq -r '.plugins[] | "\(.name) \(.source)"' .claude-plugin/marketplace.json |
+          while read -r name source; do
+            manifest="$source/.claude-plugin/plugin.json"
+            [ -f "$manifest" ] || { echo "::error::$name: missing $manifest"; exit 1; }
+            [ "$(jq -r .name "$manifest")" = "$name" ] || { echo "::error::$name: name mismatch in $manifest"; exit 1; }
+            for m in $(jq -r '.modules[]' "$source/hooks/hooks.json"); do
+              [ -f "$source/hooks/$m" ] || { echo "::error::$name: module $m not found"; exit 1; }
+            done
+          done
+
+      - name: Every mod folder is listed in the marketplace
+        run: |
+          for dir in mods/*/; do
+            dir="${dir%/}"
+            jq -e --arg s "./$dir" '.plugins[] | select(.source == $s)' .claude-plugin/marketplace.json >/dev/null \
+              || { echo "::error::$dir is not listed in marketplace.json"; exit 1; }
+          done
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

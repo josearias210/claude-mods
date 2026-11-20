@@ -1,0 +1,15 @@
+{
+  "name": "claude-mods",
+  "owner": { "name": "Antonio Arias" },
+  "metadata": {
+    "description": "A curated collection of mods for Claude Code: status bar, panels and UI extensions."
+  },
+  "plugins": [
+    {
+      "name": "status-bar",
+      "source": "./mods/status-bar",
+      "description": "Footer bar showing model, effort, cache countdown and context left.",
+      "version": "0.2.0"
+    }
+  ]
+}

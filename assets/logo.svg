@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="180" viewBox="0 0 640 180" role="img" aria-label="claude-mods">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#D97757"/>
+      <stop offset="1" stop-color="#B8532F"/>
+    </linearGradient>
+  </defs>
+  <rect x="20" y="30" width="120" height="120" rx="28" fill="url(#g)"/>
+  <path d="M55 70 L80 90 L55 110" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="88" y="108" width="34" height="9" rx="4.5" fill="#fff"/>
+  <text x="165" y="96" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="52" font-weight="700" fill="#D97757">claude-mods</text>
+  <text x="167" y="128" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="20" fill="#8a8a8a">Extensions for Claude Code</text>
+</svg>
