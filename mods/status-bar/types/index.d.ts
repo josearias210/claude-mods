@@ -5,6 +5,8 @@ export type Snap = {
   now: number
   window: number
   percent: number | null
+  fiveHour: { pct: number; resetsAt?: string } | null
+  sevenDay: { pct: number; resetsAt?: string } | null
 }
 
 declare module 'claude-code' {
