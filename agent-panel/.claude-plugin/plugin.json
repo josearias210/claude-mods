@@ -1,1 +1,0 @@
-{ "name": "agent-panel", "version": "0.1.0", "description": "Right-hand pane with the agents of the session as a tree: icon, name, status; click for details, copy or reply", "types": "./types/index.d.ts" }
