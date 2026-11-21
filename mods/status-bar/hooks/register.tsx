@@ -8,9 +8,11 @@ const snap = atom({ plugin: 'status-bar', key: 'snap' } as const, initial)
 
 const SKY = '#7dcfff'
 const LILAC = '#bb9af7'
-const MINT = '#8fd1a4'
-const PEACH = '#f2a379'
-const ROSE = '#f7768e'
+const GREEN = '#9ece6a'
+const ORANGE = '#ff9e64'
+const RED = '#f7768e'
+const YELLOW = '#f1fa8c'
+const BLUE = '#5f87ff'
 const MUTED = '#7f849c'
 
 const fmtTokens = (n: number) => (n >= 1_000_000 ? `${n / 1_000_000}M` : `${Math.round(n / 1000)}k`)
@@ -19,8 +21,6 @@ const fmtLeft = (ms: number) => {
   const sec = Math.max(0, Math.round(ms / 1000))
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
 }
-
-const quotaColor = (p: number) => (p >= 90 ? ROSE : p >= 70 ? PEACH : MINT)
 
 const fmtReset = (iso: string | undefined, now: number) => {
   if (!iso) return ''
@@ -88,12 +88,9 @@ export const register: Register = on => {
     const { Box, Text } = $.ui.resolve(e)
 
     const left = s.cacheUntil - s.now
-    const cacheColor = left <= 0 ? ROSE : left < 60_000 ? PEACH : MINT
     const cacheText = s.cacheUntil === 0 ? '--' : left <= 0 ? 'expired' : fmtLeft(left)
 
     const free = s.percent === null ? null : Math.max(0, 100 - s.percent)
-    const ctxColor = free === null ? MUTED : free < 10 ? ROSE : free < 25 ? PEACH : MINT
-
 
     return (
       <Box>
@@ -102,21 +99,21 @@ export const register: Register = on => {
         <Text color={MUTED}> │ </Text>
         <Text color={LILAC}>✦ {s.effort || 'n/a'}</Text>
         <Text color={MUTED}> │ </Text>
-        <Text color={cacheColor}>◷ cache {cacheText}</Text>
+        <Text color={GREEN}>◷ cache {cacheText}</Text>
         <Text color={MUTED}> │ </Text>
-        <Text color={ctxColor}>
+        <Text color={ORANGE}>
           ▤ {s.window ? fmtTokens(s.window) : '--'}
           {free === null ? '' : ` · ${free}% left`}
         </Text>
         {s.fiveHour ? <Text color={MUTED}> │ </Text> : null}
         {s.fiveHour ? (
-          <Text color={quotaColor(s.fiveHour.pct)}>
+          <Text color={RED}>
             ⏱ 5h {s.fiveHour.pct}%{fmtReset(s.fiveHour.resetsAt, s.now)}
           </Text>
         ) : null}
         {s.sevenDay ? <Text color={MUTED}> │ </Text> : null}
         {s.sevenDay ? (
-          <Text color={quotaColor(s.sevenDay.pct)}>
+          <Text color={YELLOW}>
             ▦ 7d {s.sevenDay.pct}%{fmtReset(s.sevenDay.resetsAt, s.now)}
           </Text>
         ) : null}
@@ -135,7 +132,7 @@ export const register: Register = on => {
 
     return (
       <Box>
-        <Text color={MINT}>{mode}</Text>
+        <Text color={BLUE}>{mode}</Text>
         <Text color={MUTED}>{rest}</Text>
       </Box>
     )

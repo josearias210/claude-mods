@@ -9,7 +9,7 @@
       "name": "status-bar",
       "source": "./mods/status-bar",
       "description": "Footer bar showing model, effort, cache countdown and context left, plus 5h and 7d quota.",
-      "version": "0.3.0"
+      "version": "0.3.1"
     }
   ]
 }
