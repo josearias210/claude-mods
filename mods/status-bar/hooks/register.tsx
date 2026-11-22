@@ -3,14 +3,17 @@ import type { Register } from 'claude-code'
 
 import type { Snap } from '../types'
 
-const initial: Snap = { model: '', effort: '', cacheUntil: 0, now: 0, window: 0, percent: null, fiveHour: null, sevenDay: null }
+const initial: Snap = { model: '', effort: '', cacheUntil: 0, now: 0, window: 0, percent: null, fiveHour: null, sevenDay: null, startedAt: 0, tokens: 0, usd: null }
 const snap = atom({ plugin: 'status-bar', key: 'snap' } as const, initial)
 
 const SKY = '#7dcfff'
 const LILAC = '#bb9af7'
-const MINT = '#8fd1a4'
-const PEACH = '#f2a379'
-const ROSE = '#f7768e'
+const GREEN = '#9ece6a'
+const ORANGE = '#ff9e64'
+const RED = '#f7768e'
+const YELLOW = '#f1fa8c'
+const BLUE = '#5f87ff'
+const TEAL = '#73daca'
 const MUTED = '#7f849c'
 
 const fmtTokens = (n: number) => (n >= 1_000_000 ? `${n / 1_000_000}M` : `${Math.round(n / 1000)}k`)
@@ -20,8 +23,6 @@ const fmtLeft = (ms: number) => {
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
 }
 
-const quotaColor = (p: number) => (p >= 90 ? ROSE : p >= 70 ? PEACH : MINT)
-
 const fmtReset = (iso: string | undefined, now: number) => {
   if (!iso) return ''
   const min = Math.max(0, Math.round((Date.parse(iso) - now) / 60000))
@@ -30,11 +31,16 @@ const fmtReset = (iso: string | undefined, now: number) => {
   return ` · ${min}m`
 }
 
+const fmtCount = (n: number) =>
+  n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n)
+
+const fmtUsd = (usd: number) => (usd < 10 ? `$${usd.toFixed(2)}` : `$${usd.toFixed(1)}`)
+
 const shortModel = (m: string) => m.replace(/^claude-/, '').replace(/-\d{8}$/, '')
 
 async function refresh($: any) {
   const now = await $.clock.now()
-  const { context, rateLimits } = await $.session.usage()
+  const { context, rateLimits, cost, startedAt } = await $.session.usage()
   const pick = (k: string) => {
     const r = (rateLimits ?? []).find((x: any) => x.kind === k)
     return r ? { pct: Math.round(r.percentUsed), resetsAt: r.resetsAt } : null
@@ -42,6 +48,10 @@ async function refresh($: any) {
   await update($, snap, (s: Snap) => ({
     ...s,
     now,
+    // /clear or a new process restarts the session's count: start tokens over with it
+    startedAt,
+    tokens: s.startedAt === startedAt ? s.tokens : 0,
+    usd: cost ? cost.usd : null,
     window: context.window,
     percent: context.percent ?? null,
     fiveHour: pick('five_hour'),
@@ -49,7 +59,13 @@ async function refresh($: any) {
   }))
 }
 
-let timer: { cancel: () => void } | undefined
+async function addTokens($: any, u: any) {
+  if (!u) return
+  const n = u.input_tokens + u.output_tokens + u.cache_read_input_tokens + u.cache_creation_input_tokens
+  await update($, snap, (s: Snap) => ({ ...s, tokens: s.tokens + n }))
+}
+
+let timer:{ cancel: () => void } | undefined
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -61,7 +77,11 @@ export const register: Register = on => {
   })
 
   on('turn.step', async function* ($, e, next) {
-    if (e.agentId) return yield* next(e)
+    if (e.agentId) {
+      const res = yield* next(e)
+      await addTokens($, res.usage)
+      return res
+    }
     const sentAt = await $.clock.now()
     await update($, snap, (s: Snap) => ({
       ...s,
@@ -79,6 +99,7 @@ export const register: Register = on => {
         cacheUntil: touched ? sentAt + ttl : s.cacheUntil,
       }))
     }
+    await addTokens($, u)
     await refresh($)
     return res
   })
@@ -88,12 +109,9 @@ export const register: Register = on => {
     const { Box, Text } = $.ui.resolve(e)
 
     const left = s.cacheUntil - s.now
-    const cacheColor = left <= 0 ? ROSE : left < 60_000 ? PEACH : MINT
     const cacheText = s.cacheUntil === 0 ? '--' : left <= 0 ? 'expired' : fmtLeft(left)
 
     const free = s.percent === null ? null : Math.max(0, 100 - s.percent)
-    const ctxColor = free === null ? MUTED : free < 10 ? ROSE : free < 25 ? PEACH : MINT
-
 
     return (
       <Box>
@@ -102,24 +120,29 @@ export const register: Register = on => {
         <Text color={MUTED}> │ </Text>
         <Text color={LILAC}>✦ {s.effort || 'n/a'}</Text>
         <Text color={MUTED}> │ </Text>
-        <Text color={cacheColor}>◷ cache {cacheText}</Text>
+        <Text color={GREEN}>◷ cache {cacheText}</Text>
         <Text color={MUTED}> │ </Text>
-        <Text color={ctxColor}>
+        <Text color={ORANGE}>
           ▤ {s.window ? fmtTokens(s.window) : '--'}
           {free === null ? '' : ` · ${free}% left`}
         </Text>
         {s.fiveHour ? <Text color={MUTED}> │ </Text> : null}
         {s.fiveHour ? (
-          <Text color={quotaColor(s.fiveHour.pct)}>
+          <Text color={RED}>
             ⏱ 5h {s.fiveHour.pct}%{fmtReset(s.fiveHour.resetsAt, s.now)}
           </Text>
         ) : null}
         {s.sevenDay ? <Text color={MUTED}> │ </Text> : null}
         {s.sevenDay ? (
-          <Text color={quotaColor(s.sevenDay.pct)}>
+          <Text color={YELLOW}>
             ▦ 7d {s.sevenDay.pct}%{fmtReset(s.sevenDay.resetsAt, s.now)}
           </Text>
         ) : null}
+        <Text color={MUTED}> │ </Text>
+        <Text color={TEAL}>
+          ⛁ {fmtCount(s.tokens)} tok
+          {s.usd === null ? '' : ` · ~${fmtUsd(s.usd)}`}
+        </Text>
       </Box>
     )
   })
@@ -135,7 +158,7 @@ export const register: Register = on => {
 
     return (
       <Box>
-        <Text color={MINT}>{mode}</Text>
+        <Text color={BLUE}>{mode}</Text>
         <Text color={MUTED}>{rest}</Text>
       </Box>
     )
