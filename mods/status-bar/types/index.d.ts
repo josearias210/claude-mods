@@ -7,6 +7,9 @@ export type Snap = {
   percent: number | null
   fiveHour: { pct: number; resetsAt?: string } | null
   sevenDay: { pct: number; resetsAt?: string } | null
+  startedAt: number
+  tokens: number
+  usd: number | null
 }
 
 declare module 'claude-code' {
